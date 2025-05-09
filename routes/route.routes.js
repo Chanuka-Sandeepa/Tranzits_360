@@ -16,7 +16,7 @@ router.use(protect);
 
 // Admin-only routes
 router.route('/')
-  .get(authorize(['admin', 'driver']), getAllRoutes)
+  .get(getAllRoutes)
   .post(authorize('admin'), addRoute);
 
 router.route('/:id')

@@ -9,7 +9,8 @@ import {
   assignRoutes,
   assignCurrentRoute,
   getVehiclesByRoute,
-  getActiveVehiclesOnRoute
+  getActiveVehiclesOnRoute,
+  getNextStop
 } from '../controllers/vehicle.controller.js';
 import { protect, authorize } from '../middleware/auth.js';
 import roleCheck from '../middleware/roleCheck.js';
@@ -22,17 +23,17 @@ router.use(protect);
 
 // Admin-only routes
 router.route('/')
-  .get(authorize(['admin', 'driver']), getAllVehicles)
-  .post(authorize('admin'), addVehicle);
+  .get(getAllVehicles)
+  .post(addVehicle);
 
 router.route('/:id')
   .get(authorize(['admin', 'driver']), getVehicleById)
-  .put(authorize('admin'), updateVehicle)
-  .delete(authorize('admin'), deleteVehicle);
+  .put(authorize('driver'), updateVehicle)
+  .delete(authorize('driver'), deleteVehicle);
 
 // Route assignments (Admin only)
-router.put('/:id/routes', authorize('admin'), assignRoutes);
-router.put('/:id/current-route', authorize('admin'), assignCurrentRoute);
+router.put('/:id/routes', authorize('driver'), assignRoutes);
+router.put('/:id/current-route', authorize('driver'), assignCurrentRoute);
 
 // Driver-only route
 router.put('/:id/location', authorize('driver'), updateVehicleLocation);
@@ -40,5 +41,8 @@ router.put('/:id/location', authorize('driver'), updateVehicleLocation);
 // Get vehicles by route (Admin only)
 router.get('/route/:routeId', authorize(['admin', 'driver']), getVehiclesByRoute);
 router.get('/active-route/:routeId', authorize(['admin', 'driver']), getActiveVehiclesOnRoute);
+
+// Get next stop (Public)
+router.get('/:id/next-stop', getNextStop);
 
 export default router;
