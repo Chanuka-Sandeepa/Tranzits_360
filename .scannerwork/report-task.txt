@@ -1,0 +1,6 @@
+projectKey=Public_Transport
+serverUrl=http://localhost:9000
+serverVersion=25.4.0.105899
+dashboardUrl=http://localhost:9000/dashboard?id=Public_Transport
+ceTaskId=4e94faa1-a4be-4a97-9a82-81162b69c84f
+ceTaskUrl=http://localhost:9000/api/ce/task?id=4e94faa1-a4be-4a97-9a82-81162b69c84f

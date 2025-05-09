@@ -1,8 +1,9 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import http from 'http';
 import connectDB from './config/db.js';
+import { initializeWebSocketServer } from './webSocket/websocket-server.js';
+import http from 'http';
 
 // Load environment variables
 dotenv.config();
@@ -12,6 +13,12 @@ connectDB();
 
 // Create Express app
 const app = express();
+
+// Create HTTP server for WebSocket support
+const server = http.createServer(app);
+
+// Initialize WebSocket server
+initializeWebSocketServer(server);
 
 // Body parser middleware
 app.use(express.json());
@@ -24,6 +31,27 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Import routes
+import authRoutes from './routes/auth.routes.js';
+import adminRoutes from './routes/admin.routes.js';
+import websocketApiRoutes from './webSocket/api.js';
+import analyticsRoutes from './routes/analytics.routes.js';
+import Route from './routes/route.routes.js';
+import trips from './routes/trip.routes.js';
+import Ticket from './routes/ticket.routes.js';
+import  Vehicle from './routes/vehicle.routes.js';
+
+
+// Mount routes
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/websocket', websocketApiRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/routes', Route);
+app.use('/api/trips', trips);
+app.use('/api/tickets', Ticket);
+app.use('/api/vehicles', Vehicle);
+
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -33,13 +61,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Define PORT
+
+// Define PORT and start server
 const PORT = process.env.PORT || 5008;
 
-// 👉 Create HTTP server using app
-const server = http.createServer(app);
-
-// Start the server
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
