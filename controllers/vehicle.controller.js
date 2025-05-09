@@ -467,3 +467,92 @@ export const getActiveVehiclesOnRoute = asyncHandler(async (req, res) => {
     data: vehicles
   });
 });
+
+// @desc    Get next stop for vehicle
+// @route   GET /api/vehicles/:id/next-stop
+// @access  Public
+export const getNextStop = asyncHandler(async (req, res) => {
+  const vehicle = await Vehicle.findById(req.params.id)
+    .populate('currentRoute', 'stops schedule');
+  
+  if (!vehicle) {
+    return res.status(404).json({
+      success: false,
+      message: 'Vehicle not found'
+    });
+  }
+
+  if (!vehicle.currentRoute) {
+    return res.status(400).json({
+      success: false,
+      message: 'Vehicle is not currently assigned to any route'
+    });
+  }
+
+  const now = new Date();
+  const currentDay = now.getDay(); // 0-6 (Sunday-Saturday)
+  const currentTime = now.getHours() * 60 + now.getMinutes(); // Convert to minutes since midnight
+
+  // Find today's schedule
+  const todaySchedule = vehicle.currentRoute.schedule.find(s => s.dayOfWeek === currentDay);
+  
+  if (!todaySchedule) {
+    return res.status(400).json({
+      success: false,
+      message: 'No schedule available for today'
+    });
+  }
+
+  // Find the most recent departure time that has passed
+  const departureTimes = todaySchedule.departureTimesFromOrigin.map(time => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  });
+
+  const lastDeparture = Math.max(...departureTimes.filter(time => time <= currentTime));
+  
+  if (lastDeparture === -Infinity) {
+    return res.status(400).json({
+      success: false,
+      message: 'No more departures for today'
+    });
+  }
+
+  // Calculate the base time for this trip
+  const baseTime = lastDeparture;
+
+  // Find the next stop that hasn't been reached yet
+  const nextStop = vehicle.currentRoute.stops.find(stop => {
+    const stopTime = baseTime + stop.estimatedArrivalTime;
+    return stopTime > currentTime;
+  });
+
+  if (!nextStop) {
+    return res.status(200).json({
+      success: true,
+      data: {
+        message: 'Route completed for this trip',
+        currentLocation: vehicle.currentLocation,
+        lastUpdated: vehicle.updatedAt
+      }
+    });
+  }
+
+  // Calculate ETA
+  const stopTime = baseTime + nextStop.estimatedArrivalTime;
+  const etaMinutes = stopTime - currentTime;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      nextStop: {
+        name: nextStop.name,
+        location: nextStop.location,
+        scheduledArrivalTime: new Date(now.setHours(Math.floor(stopTime / 60), stopTime % 60)),
+        etaMinutes: etaMinutes
+      },
+      currentLocation: vehicle.currentLocation,
+      lastUpdated: vehicle.updatedAt
+    }
+  });
+});
